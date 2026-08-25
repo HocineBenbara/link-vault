@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Link Vault</title>
+<style>
+  :root{
+    --bg: #1b1e26;
+    --panel: #232733;
+    --panel-2: #2a2f3d;
+    --line: #3a3f4e;
+    --ink: #e9e7e0;
+    --ink-dim: #9aa0b0;
+    --accent: #d4a24c;
+    --accent-dim: #7a6132;
+    --danger: #d16a5a;
+    --mono: "SFMono-Regular", "JetBrains Mono", Consolas, monospace;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    display:flex;
+    flex-direction:column;
+    height:100vh;
+    overflow:hidden;
+  }
+
+  header{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:12px 18px;
+    background:var(--panel);
+    border-bottom:1px solid var(--line);
+    flex-shrink:0;
+  }
+  header h1{
+    font-family:var(--serif);
+    font-size:19px;
+    font-weight:600;
+    letter-spacing:0.3px;
+    margin:0;
+    color:var(--accent);
+    white-space:nowrap;
+  }
+  .file-status{
+    font-family:var(--mono);
+    font-size:11.5px;
+    color:var(--ink-dim);
+    display:flex;
+    align-items:center;
+    gap:6px;
+    flex:1;
+    min-width:0;
+  }
+  .file-status .name{color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--ink-dim);flex-shrink:0}
+  .dot.saved{background:#6db56a}
+  .dot.dirty{background:var(--accent);animation:pulse 1s infinite}
+  .dot.error{background:var(--danger)}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}
+
+  .btn{
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    color:var(--ink);
+    padding:7px 13px;
+    border-radius:6px;
+    font-size:12.5px;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:border-color .15s, background .15s;
+  }
+  .btn:hover{border-color:var(--accent-dim); background:#2f3546}
+  .btn:focus-visible, input:focus-visible, select:focus-visible{outline:2px solid var(--accent); outline-offset:1px}
+  .btn.primary{background:var(--accent); color:#1b1e26; border-color:var(--accent); font-weight:600}
+  .btn.primary:hover{background:#e0b05e}
+  .btn.ghost{background:transparent}
+  .btn.small{padding:4px 9px; font-size:11.5px}
+
+  .layout{display:flex; flex:1; min-height:0}
+
+  .sidebar{
+    width:250px;
+    flex-shrink:0;
+    background:var(--panel);
+    border-right:1px solid var(--line);
+    display:flex;
+    flex-direction:column;
+    overflow-y:auto;
+  }
+  .sidebar-head{
+    padding:12px 14px 6px;
+    font-family:var(--mono);
+    font-size:10.5px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--ink-dim);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .folder-list{padding:2px 8px 12px}
+  .folder-item{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:8px 10px;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:13.5px;
+    color:var(--ink-dim);
+    user-select:none;
+    border-left:2px solid transparent;
+  }
+  .folder-item:hover{background:var(--panel-2); color:var(--ink)}
+  .folder-item.active{background:var(--panel-2); color:var(--accent); border-left-color:var(--accent); font-weight:600}
+  .folder-item .tab{width:3px; height:16px; background:var(--line); border-radius:2px; flex-shrink:0}
+  .folder-item.active .tab{background:var(--accent)}
+  .folder-count{margin-left:auto; font-family:var(--mono); font-size:10.5px; color:var(--ink-dim); opacity:.8}
+  .folder-actions{display:none; gap:4px}
+  .folder-item:hover .folder-actions{display:flex}
+  .icon-btn{background:none; border:none; color:var(--ink-dim); cursor:pointer; font-size:12px; padding:2px 4px; border-radius:3px}
+  .icon-btn:hover{color:var(--danger)}
+
+  main{flex:1; display:flex; flex-direction:column; min-width:0; min-height:0}
+  .toolbar{
+    display:flex; gap:10px; align-items:center;
+    padding:14px 20px; border-bottom:1px solid var(--line); flex-shrink:0;
+  }
+  .search{
+    flex:1; background:var(--panel-2); border:1px solid var(--line); color:var(--ink);
+    padding:8px 12px; border-radius:6px; font-size:13px;
+  }
+  .search::placeholder{color:var(--ink-dim)}
+
+  .link-list{flex:1; overflow-y:auto; padding:16px 20px 40px; display:flex; flex-direction:column; gap:8px}
+  .link-card{
+    background:var(--panel); border:1px solid var(--line); border-radius:8px;
+    padding:12px 14px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  }
+  .link-card:hover{border-color:var(--accent-dim)}
+  .favicon{
+    width:22px; height:22px; border-radius:4px; flex-shrink:0; background:var(--panel-2);
+    display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--ink-dim);
+  }
+  .favicon img{width:100%; height:100%; border-radius:4px}
+  .link-info{flex:1; min-width:180px}
+  .link-title{font-size:14px; font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-decoration:none; display:block}
+  .link-title:hover{color:var(--accent)}
+  .link-url{font-family:var(--mono); font-size:11px; color:var(--ink-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:2px}
+  .link-tags{display:flex; gap:5px; margin-top:6px; flex-wrap:wrap}
+  .tag{font-family:var(--mono); font-size:10px; color:var(--accent); background:rgba(212,162,76,0.1); padding:2px 7px; border-radius:10px}
+  .link-actions{display:flex; gap:6px; flex-shrink:0}
+
+  .cred-row{
+    width:100%; margin-top:8px; padding-top:8px; border-top:1px dashed var(--line);
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    font-family:var(--mono); font-size:12px; color:var(--ink-dim);
+  }
+  .cred-row .cred-item{display:flex; align-items:center; gap:6px}
+  .cred-row .cred-item b{color:var(--ink); font-weight:500}
+
+  .empty-state{
+    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    color:var(--ink-dim); gap:10px; text-align:center; padding:40px;
+  }
+  .empty-state .big{font-family:var(--serif); font-size:17px; color:var(--ink)}
+  .empty-state p{max-width:340px; font-size:13px; line-height:1.5; margin:0}
+
+  .overlay{position:fixed; inset:0; background:rgba(10,11,15,0.6); display:none; align-items:center; justify-content:center; z-index:50}
+  .overlay.show{display:flex}
+  .overlay.pw{z-index:60}
+  .modal{background:var(--panel); border:1px solid var(--line); border-radius:10px; width:420px; max-width:90vw; padding:22px}
+  .modal h2{margin:0 0 16px; font-family:var(--serif); font-size:17px; color:var(--accent)}
+  .modal p.hint{font-size:12px; color:var(--ink-dim); margin:-8px 0 14px}
+  .field{margin-bottom:12px}
+  .field label{display:block; font-size:11.5px; color:var(--ink-dim); margin-bottom:5px; font-family:var(--mono)}
+  .field input, .field select{width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--ink); padding:9px 11px; border-radius:6px; font-size:13.5px}
+  .field-row{display:flex; gap:10px}
+  .field-row .field{flex:1}
+  .modal-actions{display:flex; justify-content:flex-end; gap:8px; margin-top:18px}
+  .modal-actions.split{justify-content:space-between}
+
+  ::-webkit-scrollbar{width:8px}
+  ::-webkit-scrollbar-thumb{background:var(--line); border-radius:4px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>&#9776; Link Vault</h1>
+  <div class="file-status">
+    <span class="dot" id="statusDot"></span>
+    <span class="name" id="fileName">No file open</span>
+  </div>
+  <button class="btn ghost small" id="btnLock" style="display:none">🔒 Lock</button>
+  <button class="btn primary small" id="btnEncryptPending" style="display:none"></button>
+  <button class="btn primary" id="btnReconnect" style="display:none">Reconnect file</button>
+  <button class="btn" id="btnImport">Import…</button>
+  <button class="btn" id="btnExport">Export</button>
+  <button class="btn" id="btnOpen">Open…</button>
+  <button class="btn primary" id="btnSave">Save</button>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-head">
+      <span>Folders</span>
+      <button class="icon-btn" id="btnAddFolder" title="New folder" style="font-size:15px;color:var(--accent)">+</button>
+    </div>
+    <div class="folder-list" id="folderList"></div>
+  </aside>
+
+  <main>
+    <div class="toolbar">
+      <input type="text" class="search" id="search" placeholder="Search a link, a tag…">
+      <button class="btn primary" id="btnAddLink">+ Link</button>
+    </div>
+    <div class="link-list" id="linkList"></div>
+  </main>
+</div>
+
+<!-- Link modal -->
+<div class="overlay" id="linkOverlay">
+  <div class="modal">
+    <h2 id="linkModalTitle">New link</h2>
+    <div class="field"><label>Title</label><input id="linkTitleInput" placeholder="Link name"></div>
+    <div class="field"><label>URL</label><input id="linkUrlInput" placeholder="https://…"></div>
+    <div class="field"><label>Folder</label><select id="linkFolderInput"></select></div>
+    <div class="field"><label>Tags (comma-separated)</label><input id="linkTagsInput" placeholder="dev, docs, to read"></div>
+    <div class="field-row">
+      <div class="field"><label>Username <span style="opacity:.6">(encrypted, optional)</span></label><input id="linkUserInput" placeholder="Username"></div>
+      <div class="field"><label>Password <span style="opacity:.6">(encrypted, optional)</span></label><input id="linkPassInput" type="password" placeholder="Password"></div>
+    </div>
+    <div class="field" id="credRemoveWrap" style="display:none">
+      <button class="btn ghost small" type="button" id="btnRemoveCred">🗑 Remove saved credentials</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="linkCancel">Cancel</button>
+      <button class="btn primary" id="linkSaveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Folder modal -->
+<div class="overlay" id="folderOverlay">
+  <div class="modal">
+    <h2>New folder</h2>
+    <div class="field"><label>Name</label><input id="folderNameInput" placeholder="e.g. Projects, Resources…"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="folderCancel">Cancel</button>
+      <button class="btn primary" id="folderSaveBtn">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Master password modal -->
+<div class="overlay pw" id="pwOverlay">
+  <div class="modal">
+    <h2 id="pwModalTitle">Master password</h2>
+    <p class="hint" id="pwHint">This password encrypts the credentials saved in this file. It is never stored: if lost, saved credentials cannot be recovered.</p>
+    <div class="field"><label>Password</label><input type="password" id="pwInput"></div>
+    <div class="field" id="pwConfirmField" style="display:none"><label>Confirm</label><input type="password" id="pwConfirmInput"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="pwCancel">Cancel</button>
+      <button class="btn primary" id="pwSaveBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="importInput" accept="application/json" style="display:none">
+<script src="app.js"></script>
+</body>
+</html>
